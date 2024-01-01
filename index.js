@@ -32,7 +32,6 @@ async function run() {
         // Send a ping to confirm a successful connection
         const bookCollections = client.db("BookInventory").collection("Books");
 
-
         // insert a book to db: Post Method
         app.post("/upload-book", async (req, res) => {
             const data = req.body;
@@ -40,7 +39,7 @@ async function run() {
             const result = await bookCollections.insertOne(data);
             res.send(result);
         })
-
+        
         // // get all books from db
         // app.get("/all-books", async (req, res) => {
         //     const books = bookCollections.find();
@@ -93,6 +92,54 @@ async function run() {
             const result = await bookCollections.findOne(filter);
             res.send(result)
         })
+
+        // Favorite book
+        const bookFavorite = client.db("BookInventory").collection("BooksFavorite");
+
+        // insert a favorite book to db: Post Method
+        app.post("/add-favorite-book", async (req, res) => {
+            const data = req.body;
+            const result = await bookFavorite.insertOne(data);
+            res.send(result);
+        });
+
+        // get all favorite books from db
+        app.get("/all-favorite-books", async (req, res) => {
+            const result = await bookFavorite.find().toArray();
+            res.send(result);
+        });
+
+        // update a favorite book method
+        app.patch("/favorite-book/:id", async (req, res) => {
+            const id = req.params.id;
+            const updateFavoriteBookData = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    ...updateFavoriteBookData
+                }
+            };
+            const options = { upsert: true };
+
+            const result = await bookFavorite.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        });
+
+        // delete a favorite book from db
+        app.delete("/favorite-book/:id", async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const result = await bookFavorite.deleteOne(filter);
+            res.send(result);
+        });
+
+        // get a single favorite book data
+        app.get("/favorite-book/:id", async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const result = await bookFavorite.findOne(filter);
+            res.send(result);
+        });
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
