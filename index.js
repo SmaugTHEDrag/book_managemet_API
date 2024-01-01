@@ -101,13 +101,17 @@ async function run() {
             const data = req.body;
             const result = await bookFavorite.insertOne(data);
             res.send(result);
-        });
+        })
 
         // get all favorite books from db
         app.get("/all-favorite-books", async (req, res) => {
-            const result = await bookFavorite.find().toArray();
-            res.send(result);
-        });
+            let query = {};
+            if (req.query?.category) {
+                query = { category: req.query.category }
+            }
+            const result = await bookFavorite.find(query).toArray();
+            res.send(result)
+        })
 
         // update a favorite book method
         app.patch("/favorite-book/:id", async (req, res) => {
@@ -138,8 +142,8 @@ async function run() {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const result = await bookFavorite.findOne(filter);
-            res.send(result);
-        });
+            res.send(result)
+        })
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
