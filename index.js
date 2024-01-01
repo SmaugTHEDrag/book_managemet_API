@@ -97,7 +97,7 @@ async function run() {
         const bookFavorite = client.db("BookInventory").collection("BooksFavorite");
 
         // insert a favorite book to db: Post Method
-        app.post("/add-favorite-book", async (req, res) => {
+        app.post("/upload-favorite-book", async (req, res) => {
             const data = req.body;
             const result = await bookFavorite.insertOne(data);
             res.send(result);
