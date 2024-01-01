@@ -127,7 +127,7 @@ async function run() {
 
             const result = await bookFavorite.updateOne(filter, updatedDoc, options);
             res.send(result);
-        });
+        })
 
         // delete a favorite book from db
         app.delete("/favorite-book/:id", async (req, res) => {
@@ -135,8 +135,7 @@ async function run() {
             const filter = { _id: new ObjectId(id) };
             const result = await bookFavorite.deleteOne(filter);
             res.send(result);
-        });
-
+        })
         // get a single favorite book data
         app.get("/favorite-book/:id", async (req, res) => {
             const id = req.params.id;
