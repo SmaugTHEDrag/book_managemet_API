@@ -1,158 +1,104 @@
-const express = require('express')
+const mysql = require('mysql2');
+const express = require('express');
+const cors = require('cors');
+
 const app = express();
-const cors = require('cors')
 const port = process.env.PORT || 5000;
-// https://book-management-4qw7.onrender.com
-// middlewear 
+
 app.use(cors());
 app.use(express.json());
 
-
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-})
-
-// mongodb confiq here
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const uri = "mongodb+srv://mern-book-store:1234567890@cluster0.wcl6ubr.mongodb.net/?retryWrites=true&w=majority";
-
-// Create a MongoClient with a MongoClientOptionsobject to set the Stable API version
-const client = new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
+// Kết nối MySQL
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',      // Thay bằng username của bạn
+    password: '@Nguyen1222004',      // Thay bằng password của bạn
+    database: 'BookInventory'
 });
 
-async function run() {
-    try {
-        // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
-        // Send a ping to confirm a successful connection
-        const bookCollections = client.db("BookInventory").collection("Books");
-
-        // insert a book to db: Post Method
-        app.post("/upload-book", async (req, res) => {
-            const data = req.body;
-            // console.log(data);
-            const result = await bookCollections.insertOne(data);
-            res.send(result);
-        })
-        
-        // // get all books from db
-        // app.get("/all-books", async (req, res) => {
-        //     const books = bookCollections.find();
-        //     const result = await books.toArray();
-        //     res.send(result)
-        // })
-
-        // get all books & find by a category from db
-        app.get("/all-books", async (req, res) => {
-            let query = {};
-            if (req.query?.category) {
-                query = { category: req.query.category }
-            }
-            const result = await bookCollections.find(query).toArray();
-            res.send(result)
-        })
-
-        // update a books method
-        app.patch("/book/:id", async (req, res) => {
-            const id = req.params.id;
-            // console.log(id);
-            const updateBookData = req.body;
-            const filter = { _id: new ObjectId(id) };
-            const updatedDoc = {
-                $set: {
-                    ...updateBookData
-                }
-            }
-            const options = { upsert: true };
-
-            // update now
-            const result = await bookCollections.updateOne(filter, updatedDoc, options);
-            res.send(result);
-        })
-
-
-        // delete a item from db
-        app.delete("/book/:id", async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const result = await bookCollections.deleteOne(filter);
-            res.send(result);
-        })
-
-
-        // get a single book data
-        app.get("/book/:id", async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const result = await bookCollections.findOne(filter);
-            res.send(result)
-        })
-
-        // Favorite book
-        const bookFavorite = client.db("BookInventory").collection("BooksFavorite");
-
-        // insert a favorite book to db: Post Method
-        app.post("/upload-favorite-book", async (req, res) => {
-            const data = req.body;
-            const result = await bookFavorite.insertOne(data);
-            res.send(result);
-        })
-
-        // get all favorite books from db
-        app.get("/all-favorite-books", async (req, res) => {
-            let query = {};
-            if (req.query?.category) {
-                query = { category: req.query.category }
-            }
-            const result = await bookFavorite.find(query).toArray();
-            res.send(result)
-        })
-
-        // update a favorite book method
-        app.patch("/favorite-book/:id", async (req, res) => {
-            const id = req.params.id;
-            const updateFavoriteBookData = req.body;
-            const filter = { _id: new ObjectId(id) };
-            const updatedDoc = {
-                $set: {
-                    ...updateFavoriteBookData
-                }
-            };
-            const options = { upsert: true };
-
-            const result = await bookFavorite.updateOne(filter, updatedDoc, options);
-            res.send(result);
-        })
-
-        // delete a favorite book from db
-        app.delete("/favorite-book/:id", async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const result = await bookFavorite.deleteOne(filter);
-            res.send(result);
-        })
-        // get a single favorite book data
-        app.get("/favorite-book/:id", async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const result = await bookFavorite.findOne(filter);
-            res.send(result)
-        })
-
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    } finally {
-        // Ensures that the client will close when you finish/error
-        // await client.close();
+db.connect(err => {
+    if (err) {
+        console.error('Lỗi kết nối MySQL:', err);
+        return;
     }
-}
-run().catch(console.dir);
+    console.log('Kết nối MySQL thành công!');
+});
 
+// API Test
+app.get('/', (req, res) => {
+    res.send('Hello World!');
+});
+app.post('/upload-book', (req, res) => {
+    const { bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL } = req.body;
+    const sql = `INSERT INTO Books (bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.query(sql, [bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Sách đã được thêm!', bookId: result.insertId });
+    });
+});
+app.get('/all-books', (req, res) => {
+    const sql = "SELECT * FROM Books";
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(result);
+    });
+});
+app.patch('/book/:id', (req, res) => {
+    const { id } = req.params;
+    const updateFields = req.body;
+
+    let updateQuery = "UPDATE Books SET ";
+    let updateValues = [];
+    Object.keys(updateFields).forEach((key, index) => {
+        updateQuery += `${key} = ?${index < Object.keys(updateFields).length - 1 ? ', ' : ' '}`;
+        updateValues.push(updateFields[key]);
+    });
+    updateQuery += "WHERE id = ?";
+
+    db.query(updateQuery, [...updateValues, id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Cập nhật sách thành công!' });
+    });
+});
+app.delete('/book/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = "DELETE FROM Books WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Sách đã bị xóa!' });
+    });
+});
+app.get('/book/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = "SELECT * FROM Books WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(result[0]);
+    });
+});
+app.post('/upload-favorite-book', (req, res) => {
+    const { bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL } = req.body;
+    const sql = `INSERT INTO BooksFavorite (bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.query(sql, [bookTitle, authorName, imageURL, category, bookDescription, bookPDFURL], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Sách yêu thích đã được thêm!', bookId: result.insertId });
+    });
+});
+app.get('/all-favorite-books', (req, res) => {
+    const sql = "SELECT * FROM BooksFavorite";
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(result);
+    });
+});
+app.delete('/favorite-book/:id', (req, res) => {
+    const { id } = req.params;
+    const sql = "DELETE FROM BooksFavorite WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Sách yêu thích đã bị xóa!' });
+    });
+});
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
-})
+    console.log(`Server đang chạy tại http://localhost:${port}`);
+});
